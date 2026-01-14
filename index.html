@@ -1,0 +1,822 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Fretboard Scale Visualizer</title>
+  <style>
+    :root{--bg:#0f1724;--card:#0b1220;--muted:#96a0b3;--accent:#7dd3fc}
+    html,body{height:100%;margin:0;font-family:Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;color:#e6eef6;background:linear-gradient(180deg,#071026 0%, #071723 60%);}
+    .wrap{max-width:1100px;margin:28px auto;padding:20px;background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);border-radius:12px;box-shadow:0 6px 30px rgba(2,6,23,0.6);}
+    h1{margin:0 0 10px;font-size:20px}
+    p.lead{color:var(--muted);margin:6px 0 18px}
+    .controls{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+    .field{display:flex;flex-direction:column;gap:6px}
+    label{font-size:13px;color:var(--muted)}
+    input[type=text], select, input[type=number]{background:transparent;border:1px solid rgba(255,255,255,0.06);padding:8px 10px;border-radius:8px;color:#eaf3ff;min-width:160px}
+    textarea{background:transparent;border:1px solid rgba(255,255,255,0.06);padding:8px 10px;border-radius:8px;color:#eaf3ff;min-width:220px;min-height:64px;resize:vertical}
+    button{background:linear-gradient(90deg,#2dd4bf,#7dd3fc);border:0;padding:8px 12px;border-radius:10px;color:#042027;font-weight:600;cursor:pointer}
+    .btn-ghost{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--muted)}
+    .intervals-grid{display:flex;flex-wrap:nowrap;gap:4px;max-width:100%;overflow-x:auto;padding-bottom:2px}
+    .interval-btn{background:transparent;border:1px solid rgba(255,255,255,0.10);color:#eaf3ff;padding:6px 8px;border-radius:10px;cursor:pointer;font-weight:700;min-width:34px;flex:0 0 auto}
+    .interval-btn[aria-pressed="true"]{background:linear-gradient(180deg, rgba(125,211,252,0.14), rgba(45,212,191,0.08));border-color:rgba(125,211,252,0.35)}
+    .fretboard{background:linear-gradient(180deg,#061226, #071220);padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,0.03)}
+    table{border-collapse:collapse;width:100%;table-layout:fixed}
+    thead th{position:sticky;top:0;background:rgba(6,10,20,0.7);backdrop-filter:blur(4px);z-index:2;color:var(--muted);padding:6px 8px;font-size:13px;border-bottom:1px solid rgba(255,255,255,0.03)}
+    tbody tr{border-bottom:1px solid rgba(255,255,255,0.02)}
+    td, th{padding:4px;text-align:center;font-size:13px}
+    .string-name{font-weight:700;color:#cfeffd;width:70px;text-align:left;padding-left:12px}
+    .fret{border-left:1px solid rgba(255,255,255,0.02)}
+    .cell-empty{color:rgba(255,255,255,0.12)}
+    .cell-note{background:linear-gradient(180deg, rgba(125,211,252,0.06), rgba(45,212,191,0.03));border-radius:6px;padding:4px;display:inline-block;width:100%}
+    .controls-row{display:flex;gap:10px;align-items:end}
+    .shapes{margin-top:16px}
+    .shapes-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:10px 2px}
+    .shapes-head h2{margin:0;font-size:15px}
+    .shapes-head .hint{color:var(--muted);font-size:13px}
+    .shapes-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:12px}
+    .shape-card{background:linear-gradient(180deg,#061226, #071220);padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,0.03)}
+    .shape-title{display:flex;justify-content:space-between;gap:10px;align-items:baseline;margin:0 0 10px}
+    .shape-title .name{font-weight:700}
+    .shape-title .meta{color:var(--muted);font-size:13px}
+    .shape-variant{margin-top:10px}
+    .shape-variant h3{margin:10px 0 6px;font-size:13px;color:var(--muted);font-weight:600}
+    .shape-table{border-collapse:collapse;width:100%;table-layout:fixed}
+    .shape-table thead th{position:static;background:transparent;backdrop-filter:none;color:var(--muted);border-bottom:1px solid rgba(255,255,255,0.03)}
+    .shape-table td, .shape-table th{padding:3px;text-align:center;font-size:12px}
+    .shape-table .string-name{width:54px;padding-left:8px}
+    .dot{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:20px;border-radius:6px;background:rgba(125,211,252,0.10);border:1px solid rgba(125,211,252,0.16);color:#dff6ff;font-weight:700}
+    .dot.root{background:rgba(45,212,191,0.12);border-color:rgba(45,212,191,0.22);color:#e7fffb}
+    .triads{margin-top:16px;background:linear-gradient(180deg,#061226, #071220);padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,0.03)}
+    .triads h2{margin:0 0 8px;font-size:15px}
+    .triads .row{display:flex;gap:12px;flex-wrap:nowrap}
+    .triads .col{flex:1 1 0;min-width:0}
+    .triads h3{margin:6px 0 6px;font-size:13px;color:var(--muted);font-weight:600}
+    .triads pre{margin:0;padding:10px;border-radius:8px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.03);color:#d9e7f6;white-space:pre-wrap;word-break:break-word}
+    .readme{margin-top:16px;background:linear-gradient(180deg,#061226, #071220);padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,0.03)}
+    .readme h2{margin:0 0 8px;font-size:15px}
+    .readme p{margin:0 0 8px;color:var(--muted);line-height:1.45}
+    .readme pre{margin:0;padding:10px;border-radius:8px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.03);color:#d9e7f6;white-space:pre-wrap;word-break:break-word}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Fretboard Scale Visualizer — Standalone HTML</h1>
+    <p class="lead">Lowest string is at the bottom. Only scale notes are clickable to cycle: fret → note.</p>
+
+    <div class="controls">
+      <div class="field">
+        <label for="tuning">Tuning (low → high)</label>
+        <input id="tuning" type="text" value="E A D G B E" />
+      </div>
+
+      <div class="field">
+        <label for="root">Root note</label>
+        <select id="root"></select>
+      </div>
+
+      <div class="field">
+        <label for="intervals">Intervals</label>
+        <div id="intervalButtons" class="intervals-grid" aria-label="Intervals"></div>
+        <div class="controls-row">
+          <button id="rotateDown" type="button" class="btn-ghost">Rotate down</button>
+          <button id="rotateUp" type="button" class="btn-ghost">Rotate up</button>
+        </div>
+        <input id="intervals" type="hidden" value="0,2,4,5,7,9,11" />
+      </div>
+
+      <div class="field">
+        <label for="chords">Chords</label>
+        <div class="controls-row">
+          <label style="display:flex;gap:8px;align-items:center">
+            <input id="useChords" type="checkbox" />
+            Use chords
+          </label>
+        </div>
+        <textarea id="chords" placeholder="e.g. Cmaj7 Dm7 G7"></textarea>
+      </div>
+
+      <div class="field">
+        <label for="frets">Frets</label>
+        <input id="frets" type="number" value="24" min="1" max="36" />
+      </div>
+
+      <div class="controls-row">
+        <button id="toggleAll" class="btn-ghost">Show notes</button>
+      </div>
+    </div>
+
+    <div class="fretboard" id="out">No fretboard yet.</div>
+
+    <div class="triads" id="triads">
+      <h2>Chords</h2>
+      <div class="row">
+        <div class="col">
+          <h3>Tetrads</h3>
+          <pre id="triadsTetrads"></pre>
+        </div>
+        <div class="col">
+          <h3>Major</h3>
+          <pre id="triadsMajor"></pre>
+        </div>
+        <div class="col">
+          <h3>Minor</h3>
+          <pre id="triadsMinor"></pre>
+        </div>
+        <div class="col">
+          <h3>Diminished</h3>
+          <pre id="triadsDiminished"></pre>
+        </div>
+        <div class="col">
+          <h3>Augmented</h3>
+          <pre id="triadsAugmented"></pre>
+        </div>
+        <div class="col">
+          <h3>Diads</h3>
+          <pre id="triadsDiads"></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="shapes" id="shapes">
+      <div class="shapes-head">
+        <h2>Scale shapes</h2>
+        <div class="hint">Each shape is anchored on the lowest string at the first octave's scale notes. The "first finger" variant never uses frets below the starting fret.</div>
+      </div>
+      <div id="shapesOut" class="shapes-grid"></div>
+    </div>
+
+    <div class="readme" id="readme">
+      <h2>README</h2>
+      <p>This is a single-file, standalone fretboard/scale visualizer. Open <code>fretboard.html</code> in a browser and use the controls above to explore scales and chord-derived pitch collections.</p>
+      <pre>Controls
+- Tuning: space-separated notes, low → high (example: E A D G B E)
+- Root note: key center for interval calculations
+- Intervals: click 0–11 to toggle; use Rotate up/down to transpose the set
+- Chords: enable “Use chords” and type chord symbols (example: Cmaj7 Dm7 G7)
+- Frets: number of frets to display
+
+Interaction
+- Click any highlighted cell/dot to toggle between showing fret number and note name.
+- “Show notes” toggles the display mode globally.</pre>
+    </div>
+  </div>
+
+  <script>
+    const NOTE_TO_SEMITONE = {'C':0,'C#':1,'DB':1,'D':2,'D#':3,'EB':3,'E':4,'FB':4,'E#':5,'F':5,'F#':6,'GB':6,'G':7,'G#':8,'AB':8,'A':9,'A#':10,'BB':10,'B':11,'CB':11};
+    const SEMITONE_TO_NOTE = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+
+    const rootSelect = document.getElementById('root');
+    SEMITONE_TO_NOTE.forEach((n,i)=>{const opt=document.createElement('option');opt.value=i;opt.textContent=n;rootSelect.appendChild(opt)});
+
+    function setupIntervalButtons(){
+      const container = document.getElementById('intervalButtons');
+      const input = document.getElementById('intervals');
+      const rotateDownBtn = document.getElementById('rotateDown');
+      const rotateUpBtn = document.getElementById('rotateUp');
+      if(!container || !input) return;
+
+      function redraw(){ drawNow(); }
+
+      function getSelected(){
+        return new Set(parseIntervals(input.value) || []);
+      }
+
+      function setSelected(nextSet){
+        input.value = Array.from(nextSet).sort((a,b)=>a-b).join(',');
+        refreshButtons();
+      }
+
+      function refreshButtons(){
+        const selected = getSelected();
+        container.querySelectorAll('.interval-btn').forEach(btn=>{
+          const i = Number(btn.dataset.interval);
+          btn.setAttribute('aria-pressed', selected.has(i) ? 'true' : 'false');
+        });
+      }
+
+      function rotateSelected(delta){
+        const selected = getSelected();
+        if(selected.size === 0) return;
+        const next = new Set(Array.from(selected, n=>((n + delta) % 12 + 12) % 12));
+        setSelected(next);
+        redraw();
+      }
+
+      container.innerHTML = '';
+      for(let i=0; i<12; i++){
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'interval-btn';
+        btn.textContent = String(i);
+        btn.dataset.interval = String(i);
+        btn.setAttribute('aria-pressed', 'false');
+        btn.addEventListener('click',()=>{
+          const selected = getSelected();
+          if(selected.has(i)) selected.delete(i);
+          else selected.add(i);
+          setSelected(selected);
+          redraw();
+        });
+        container.appendChild(btn);
+      }
+
+      refreshButtons();
+
+      if(rotateDownBtn){
+        rotateDownBtn.addEventListener('click',()=>rotateSelected(-1));
+      }
+      if(rotateUpBtn){
+        rotateUpBtn.addEventListener('click',()=>rotateSelected(1));
+      }
+
+      window.updateIntervalsUI = refreshButtons;
+    }
+
+    function normalizeNoteToken(token){
+      let t = token.trim().toUpperCase();
+      t = t.replace('♭','B').replace('♯','#');
+      if(t.length > 1 && t[1] === 'B') t = t[0] + 'B';
+      if(t.length > 1 && t[1] === '#') t = t[0] + '#';
+      return t;
+    }
+
+    function chordQualityToIntervals(q){
+      const s = (q || '').trim().toLowerCase();
+      if(s === '' || s === 'maj' || s === 'm' || s === 'min'){
+        // handled below by more specific branches; fall through
+      }
+      if(s.startsWith('maj7') || s.startsWith('7m') || s.startsWith('7maj') || s.startsWith('7m+')) return [0,4,7,11];
+      if(s.startsWith('7m') || s.startsWith('7M')) return [0,4,7,11];
+      if(s.startsWith('m7b5') || s.startsWith('ø') || s.startsWith('hdim7')) return [0,3,6,10];
+      if(s.startsWith('dim7-')) return [0,3,6,9];
+      if(s.startsWith('dim7')) return [0,3,6,10];
+      if(s.startsWith('m7') || s.startsWith('min7')) return [0,3,7,10];
+      if(s.startsWith('7')) return [0,4,7,10];
+      if(s.startsWith('aug') || s.startsWith('+')) return [0,4,8];
+      if(s.startsWith('dim')) return [0,3,6];
+      if(s.startsWith('sus2')) return [0,2,7];
+      if(s.startsWith('sus4') || s.startsWith('sus')) return [0,5,7];
+      if(s === '5') return [0,7];
+      if(s.startsWith('min') || s.startsWith('m')) return [0,3,7];
+      if(s.startsWith('maj')) return [0,4,7];
+      return [0,4,7];
+    }
+
+    function parseChordToken(token){
+      const m = token.trim().match(/^([A-Ga-g])([#b♭♯]?)(.*)$/);
+      if(!m) return null;
+      const letter = m[1].toUpperCase();
+      const accRaw = m[2] || '';
+      const acc = accRaw === 'b' || accRaw === '♭' ? 'B' : (accRaw === '#' || accRaw === '♯' ? '#' : '');
+      const rootName = normalizeNoteToken(letter + acc);
+      const rootSemi = NOTE_TO_SEMITONE[rootName];
+      if(rootSemi === undefined) return null;
+      const quality = (m[3] || '').trim();
+      const ints = chordQualityToIntervals(quality);
+      const pcs = ints.map(n=>((rootSemi + n) % 12 + 12) % 12);
+      return {rootSemi, intervals:ints, pitchClasses:pcs};
+    }
+
+    function pitchClassesFromChordInput(text){
+      const tokens = String(text || '').split(/[\s,;]+/).map(s=>s.trim()).filter(Boolean);
+      const pcs = new Set();
+      for(const tok of tokens){
+        const chord = parseChordToken(tok);
+        if(!chord) continue;
+        chord.pitchClasses.forEach(pc=>pcs.add(pc));
+      }
+      return pcs;
+    }
+
+    function intervalsFromPitchClasses(pitchClasses, root){
+      const ints = new Set();
+      for(const pc of pitchClasses){
+        ints.add(((pc - root) % 12 + 12) % 12);
+      }
+      return Array.from(ints).sort((a,b)=>a-b);
+    }
+
+    function setIntervalControlsDisabled(disabled){
+      const container = document.getElementById('intervalButtons');
+      const rotateDownBtn = document.getElementById('rotateDown');
+      const rotateUpBtn = document.getElementById('rotateUp');
+      if(container){
+        container.querySelectorAll('button').forEach(b=>b.disabled = disabled);
+      }
+      if(rotateDownBtn) rotateDownBtn.disabled = disabled;
+      if(rotateUpBtn) rotateUpBtn.disabled = disabled;
+    }
+
+    let globalDisplayMode = 'fret';
+    function applyGlobalDisplayMode(){
+      document.querySelectorAll('[data-fret][data-note]').forEach(el=>{
+        el.dataset.mode = globalDisplayMode;
+        el.textContent = (globalDisplayMode === 'fret') ? el.dataset.fret : el.dataset.note;
+      });
+      const btn = document.getElementById('toggleAll');
+      if(btn) btn.textContent = (globalDisplayMode === 'fret') ? 'Show notes' : 'Show frets';
+    }
+
+    function octaveColor(octave){
+      const palette = ['#60a5fa','#34d399','#fbbf24','#f472b6','#a78bfa','#fb7185','#22d3ee','#cbd5e1'];
+      const idx = ((octave % palette.length) + palette.length) % palette.length;
+      return palette[idx];
+    }
+
+    function hexToRgba(hex, alpha){
+      const h = hex.replace('#','');
+      const v = h.length === 3 ? h.split('').map(c=>c+c).join('') : h;
+      const r = parseInt(v.slice(0,2),16);
+      const g = parseInt(v.slice(2,4),16);
+      const b = parseInt(v.slice(4,6),16);
+      return `rgba(${r},${g},${b},${alpha})`;
+    }
+
+    function findLowestAbsForPitchClass(openAbs, pitchClass, startFret, endFret){
+      let best = Infinity;
+      for(let s=0; s<openAbs.length; s++){
+        for(let f=startFret; f<=endFret; f++){
+          const absPitch = openAbs[s] + f;
+          if((absPitch % 12 + 12) % 12 === pitchClass) best = Math.min(best, absPitch);
+        }
+      }
+      return Number.isFinite(best) ? best : null;
+    }
+
+    function scaleOctaveIndex(absPitch, rootAbsBase){
+      if(rootAbsBase === null) return 0;
+      return Math.floor((absPitch - rootAbsBase) / 12);
+    }
+
+    function triadsFromIntervals(intervals){
+      const set = new Set(intervals.map(n=>((n%12)+12)%12));
+      const roots = Array.from(set).sort((a,b)=>a-b);
+      const tetrads = [];
+      const major = [];
+      const minor = [];
+      const diminished = [];
+      const augmented = [];
+      const diads = [];
+      for(const r of roots){
+        const has5 = set.has((r + 7) % 12);
+        const hasMaj3 = set.has((r + 4) % 12);
+        const hasMin3 = set.has((r + 3) % 12);
+        const hasDim5 = set.has((r + 6) % 12);
+        const hasAug5 = set.has((r + 8) % 12);
+        const has7M = set.has((r + 11) % 12);
+        const has7 = set.has((r + 10) % 12);
+        const has6M = set.has((r + 9) % 12);
+
+        const hasMaj7M = hasMaj3 && has5 && has7M;
+        const hasMaj7 = hasMaj3 && has5 && has7;
+        const hasMin7 = hasMin3 && has5 && has7;
+        const hasDim7 = hasMin3 && hasDim5 && has7;
+        const hasDim = hasMin3 && hasDim5 && has6M;
+
+        if(hasMaj7M) tetrads.push({root:r, suffix:'7M'});
+        if(hasMaj7) tetrads.push({root:r, suffix:'7'});
+        if(hasMin7) tetrads.push({root:r, suffix:'m7'});
+        if(hasDim7) tetrads.push({root:r, suffix:'dim7'});
+        if(hasDim) tetrads.push({root:r, suffix:'dim7-'});
+
+        const hasMaj = hasMaj3 && has5;
+        const hasMin = hasMin3 && has5;
+        const hasDimTriad = hasMin3 && hasDim5;
+        const hasAugTriad = hasMaj3 && hasAug5;
+        if(hasMaj){
+          major.push({root:r, notes:[r, (r+4)%12, (r+7)%12]});
+        }
+        if(hasMin){
+          minor.push({root:r, notes:[r, (r+3)%12, (r+7)%12]});
+        }
+        if(hasDimTriad){
+          diminished.push({root:r, notes:[r, (r+3)%12, (r+6)%12]});
+        }
+        if(hasAugTriad){
+          augmented.push({root:r, notes:[r, (r+4)%12, (r+8)%12]});
+        }
+        if(has5 && !hasMaj && !hasMin){
+          diads.push({root:r, notes:[r, (r+7)%12]});
+        }
+      }
+      return {tetrads, major, minor, diminished, augmented, diads};
+    }
+
+    function renderTriads(root, intervals){
+      const majorOut = document.getElementById('triadsMajor');
+      const minorOut = document.getElementById('triadsMinor');
+      const diminishedOut = document.getElementById('triadsDiminished');
+      const augmentedOut = document.getElementById('triadsAugmented');
+      const diadsOut = document.getElementById('triadsDiads');
+      const tetradsOut = document.getElementById('triadsTetrads');
+      const {tetrads, major, minor, diminished, augmented, diads} = triadsFromIntervals(intervals);
+
+      tetradsOut.textContent = tetrads.length
+        ? tetrads.map(t=>`${semitoneToName((root + t.root) % 12)}${t.suffix}`).join('\n')
+        : '(none)';
+      majorOut.textContent = major.length
+        ? major.map(t=>`${semitoneToName((root + t.root) % 12)}`).join('\n')
+        : '(none)';
+      minorOut.textContent = minor.length
+        ? minor.map(t=>`${semitoneToName((root + t.root) % 12)}m`).join('\n')
+        : '(none)';
+      diminishedOut.textContent = diminished.length
+        ? diminished.map(t=>`${semitoneToName((root + t.root) % 12)}dim`).join('\n')
+        : '(none)';
+      augmentedOut.textContent = augmented.length
+        ? augmented.map(t=>`${semitoneToName((root + t.root) % 12)}aug`).join('\n')
+        : '(none)';
+      diadsOut.textContent = diads.length
+        ? diads.map(t=>`${semitoneToName((root + t.root) % 12)}5`).join('\n')
+        : '(none)';
+    }
+
+    function parseTuning(str){
+      str = str.trim().toUpperCase().replace(/\s+/g,' ');
+      let parts = str.includes(' ') ? str.split(/\s+/) : str.split('');
+      parts = parts.map(p=>p.replace(/[^A-G#b]/g,''));
+      const semis = [];
+      for(let token of parts){
+        if(token.length===0) continue;
+        token = token.replace('♭','b').replace('♯','#');
+        if(token.length>1 && token[1] === 'B'){ token = token[0] + 'B'; }
+        if(token.length>1 && token[1] === '#'){ token = token[0] + '#'; }
+        if(NOTE_TO_SEMITONE[token] === undefined){ return null }
+        semis.push(NOTE_TO_SEMITONE[token]);
+      }
+      return semis;
+    }
+
+    function parseIntervals(str){
+      const parts = str.split(/[,-\s]+/).map(s=>s.trim()).filter(Boolean);
+      const ints = new Set();
+      for(const p of parts){
+        const n = Number(p);
+        if(Number.isNaN(n)) return null;
+        ints.add(((Math.floor(n) % 12) + 12) % 12);
+      }
+      return Array.from(ints).sort((a,b)=>a-b);
+    }
+
+    function semitoneToName(semi){ return SEMITONE_TO_NOTE[((semi%12)+12)%12]; }
+
+    function computeOpenAbsoluteSemitones(tuning){
+      // Derive an octave-aware absolute semitone number for each open string.
+      // We assume the lowest string is roughly in octave 2 (C2=24). This keeps labels sensible.
+      const baseOctaveSemis = 24;
+      const abs = [];
+      if(!tuning.length) return abs;
+      abs[0] = baseOctaveSemis + tuning[0];
+      for(let i=1; i<tuning.length; i++){
+        let v = baseOctaveSemis + tuning[i];
+        while(v <= abs[i-1]) v += 12;
+        abs[i] = v;
+      }
+      return abs;
+    }
+
+    function absoluteToNoteOctave(absSemi){
+      const note = semitoneToName(absSemi);
+      const octave = Math.floor(absSemi / 12);
+      return `${note}${octave}`;
+    }
+
+    function firstFretForNoteOnString(openSemi, targetSemi, maxFrets){
+      const base = ((targetSemi - openSemi) + 12) % 12;
+      if(base > maxFrets) return null;
+      let f = base;
+      while(f <= maxFrets){
+        return f;
+      }
+      return null;
+    }
+
+    function buildShapeTable(tuning, openAbs, root, colorBasePitchClass, selectedFretsPerString, startFret, endFret){
+      const table = document.createElement('table');
+      table.className = 'shape-table';
+
+      const rootAbsBase = findLowestAbsForPitchClass(openAbs, colorBasePitchClass, startFret, endFret);
+
+      const thead = document.createElement('thead');
+      const headRow = document.createElement('tr');
+      const thEmpty = document.createElement('th');
+      thEmpty.className='string-name';
+      headRow.appendChild(thEmpty);
+      for(let f=startFret; f<=endFret; f++){
+        const th = document.createElement('th');
+        th.textContent = f;
+        headRow.appendChild(th);
+      }
+      thead.appendChild(headRow);
+
+      const tbody = document.createElement('tbody');
+      [...tuning].reverse().forEach((openSemi, displayIdx)=>{
+        const stringIndex = (tuning.length - 1) - displayIdx; // map display row back to tuning index
+        const tr = document.createElement('tr');
+        const tdName = document.createElement('td');
+        tdName.className='string-name';
+        tdName.textContent = semitoneToName(openSemi);
+        tr.appendChild(tdName);
+
+        const selected = selectedFretsPerString.get(stringIndex) || new Set();
+        for(let f=startFret; f<=endFret; f++){
+          const td = document.createElement('td');
+          if(selected.has(f)){
+            const noteSemi = (openSemi + f) % 12;
+            const isRoot = (((noteSemi - root) + 12) % 12) === 0;
+            const absPitch = openAbs[stringIndex] + f;
+            const octave = scaleOctaveIndex(absPitch, rootAbsBase);
+            const labelNote = absoluteToNoteOctave(absPitch);
+            const color = octaveColor(octave);
+            const dot = document.createElement('div');
+            dot.className = 'dot' + (isRoot ? ' root' : '');
+            dot.style.backgroundColor = hexToRgba(color, 0.18);
+            dot.style.borderColor = hexToRgba(color, 0.30);
+            dot.dataset.fret = String(f);
+            dot.dataset.note = labelNote;
+            dot.dataset.mode = globalDisplayMode;
+            dot.textContent = (globalDisplayMode === 'fret') ? dot.dataset.fret : dot.dataset.note;
+            dot.addEventListener('click',()=>{
+              dot.dataset.mode = (dot.dataset.mode === 'fret') ? 'note' : 'fret';
+              dot.textContent = (dot.dataset.mode === 'fret') ? dot.dataset.fret : dot.dataset.note;
+            });
+            td.appendChild(dot);
+          }
+          tr.appendChild(td);
+        }
+        tbody.appendChild(tr);
+      });
+
+      table.appendChild(thead);
+      table.appendChild(tbody);
+      return table;
+    }
+
+    function buildShapes(tuning, root, intervals, frets){
+      const shapesOut = document.getElementById('shapesOut');
+      shapesOut.innerHTML = '';
+
+      if(!tuning.length){
+        shapesOut.textContent = '';
+        return;
+      }
+
+      const scaleIntervals = [...intervals].map(n=>((n%12)+12)%12).sort((a,b)=>a-b);
+      const lowOpen = tuning[0];
+      const openAbs = computeOpenAbsoluteSemitones(tuning);
+
+      for(const interval of scaleIntervals){
+        const startNote = (root + interval) % 12;
+        const startFret = firstFretForNoteOnString(lowOpen, startNote, frets);
+        if(startFret === null) continue;
+
+        const card = document.createElement('div');
+        card.className = 'shape-card';
+
+        const title = document.createElement('div');
+        title.className = 'shape-title';
+        const name = document.createElement('div');
+        name.className = 'name';
+        name.textContent = `Start: ${semitoneToName(startNote)}`;
+        const meta = document.createElement('div');
+        meta.className = 'meta';
+        meta.textContent = `lowest string fret ${startFret}`;
+        title.appendChild(name);
+        title.appendChild(meta);
+        card.appendChild(title);
+
+        // Variant A: 3 notes per string (>= startFret)
+        {
+          const selected = new Map();
+          const usedAbs = new Set();
+          let maxSelected = startFret;
+          for(let s=0; s<tuning.length; s++){
+            const open = tuning[s];
+            const set = new Set();
+            for(let f=startFret; f<=frets && set.size<3; f++){
+              const noteSemi = (open + f) % 12;
+              const absPitch = openAbs[s] + f;
+              const intv = ((noteSemi - root) + 12) % 12;
+              if(intervals.includes(intv) && !usedAbs.has(absPitch)){
+                set.add(f);
+                usedAbs.add(absPitch);
+                maxSelected = Math.max(maxSelected, f);
+              }
+            }
+            selected.set(s, set);
+          }
+
+          const variant = document.createElement('div');
+          variant.className = 'shape-variant';
+          const h3 = document.createElement('h3');
+          h3.textContent = '3 notes per string';
+          variant.appendChild(h3);
+
+          const endFret = Math.min(frets, Math.max(startFret + 6, maxSelected));
+          variant.appendChild(buildShapeTable(tuning, openAbs, root, startNote, selected, startFret, endFret));
+          card.appendChild(variant);
+        }
+
+        // Variant A2: 3-1 (>= startFret)
+        {
+          const selected = new Map();
+          const usedAbs = new Set();
+          let maxSelected = startFret;
+          for(let s=0; s<tuning.length; s++){
+            const open = tuning[s];
+            const set = new Set();
+            const targetCount = (s % 2 === 0) ? 3 : 1;
+            for(let f=startFret; f<=frets && set.size<targetCount; f++){
+              const noteSemi = (open + f) % 12;
+              const absPitch = openAbs[s] + f;
+              const intv = ((noteSemi - root) + 12) % 12;
+              if(intervals.includes(intv) && !usedAbs.has(absPitch)){
+                set.add(f);
+                usedAbs.add(absPitch);
+                maxSelected = Math.max(maxSelected, f);
+              }
+            }
+            selected.set(s, set);
+          }
+
+          const variant = document.createElement('div');
+          variant.className = 'shape-variant';
+          const h3 = document.createElement('h3');
+          h3.textContent = '3-1';
+          variant.appendChild(h3);
+
+          const endFret = Math.min(frets, Math.max(startFret + 6, maxSelected));
+          variant.appendChild(buildShapeTable(tuning, openAbs, root, startNote, selected, startFret, endFret));
+          card.appendChild(variant);
+        }
+
+        // Variant B: first finger position (5-fret window >= startFret)
+        {
+          const selected = new Map();
+          const usedAbs = new Set();
+          const endFret = Math.min(frets, startFret + 4);
+
+          // Pass 1: always include scale notes on the starting fret across strings.
+          for(let s=0; s<tuning.length; s++){
+            const open = tuning[s];
+            const set = new Set();
+            const f = startFret;
+            const noteSemi = (open + f) % 12;
+            const absPitch = openAbs[s] + f;
+            const intv = ((noteSemi - root) + 12) % 12;
+            if(intervals.includes(intv)){
+              set.add(f);
+              usedAbs.add(absPitch);
+            }
+            selected.set(s, set);
+          }
+
+          // Pass 2: fill the rest of the window, skipping any absolute pitch already used.
+          for(let s=0; s<tuning.length; s++){
+            const open = tuning[s];
+            const set = selected.get(s) || new Set();
+            for(let f=startFret + 1; f<=endFret; f++){
+              const noteSemi = (open + f) % 12;
+              const absPitch = openAbs[s] + f;
+              const intv = ((noteSemi - root) + 12) % 12;
+              if(intervals.includes(intv) && !usedAbs.has(absPitch)){
+                set.add(f);
+                usedAbs.add(absPitch);
+              }
+            }
+            selected.set(s, set);
+          }
+
+          const variant = document.createElement('div');
+          variant.className = 'shape-variant';
+          const h3 = document.createElement('h3');
+          h3.textContent = 'First finger position (5-fret window)';
+          variant.appendChild(h3);
+          variant.appendChild(buildShapeTable(tuning, openAbs, root, startNote, selected, startFret, endFret));
+          card.appendChild(variant);
+        }
+
+        shapesOut.appendChild(card);
+      }
+    }
+
+    function buildFretboard(tuning, root, intervals, frets){
+      const out = document.getElementById('out');
+      out.innerHTML = '';
+      const openAbs = computeOpenAbsoluteSemitones(tuning);
+      const rootAbsBase = findLowestAbsForPitchClass(openAbs, root, 0, frets);
+      const table = document.createElement('table');
+      const thead = document.createElement('thead');
+      const headRow = document.createElement('tr');
+      const thEmpty = document.createElement('th'); thEmpty.className='string-name'; headRow.appendChild(thEmpty);
+      for(let f=0; f<=frets; f++){
+        const th = document.createElement('th'); th.textContent = f; headRow.appendChild(th);
+      }
+      thead.appendChild(headRow);
+      const tbody = document.createElement('tbody');
+
+      [...tuning].reverse().forEach((openSemi, displayIdx)=>{
+        const stringIndex = (tuning.length - 1) - displayIdx;
+        const tr = document.createElement('tr');
+        const tdName = document.createElement('td'); tdName.className='string-name'; tdName.textContent = semitoneToName(openSemi); tr.appendChild(tdName);
+        for(let f=0; f<=frets; f++){
+          const td = document.createElement('td');
+          const noteSemi = (openSemi + f) % 12;
+          const interval = ((noteSemi - root) + 12) % 12;
+          if(intervals.includes(interval)){
+            const span = document.createElement('div'); span.className='cell-note';
+            const absPitch = openAbs[stringIndex] + f;
+            const octave = scaleOctaveIndex(absPitch, rootAbsBase);
+            const color = octaveColor(octave);
+            span.style.backgroundColor = hexToRgba(color, 0.16);
+            span.style.border = `1px solid ${hexToRgba(color, 0.26)}`;
+            span.dataset.fret = String(f);
+            span.dataset.note = semitoneToName(noteSemi);
+            span.dataset.mode = globalDisplayMode;
+            span.textContent = (globalDisplayMode === 'fret') ? span.dataset.fret : span.dataset.note;
+            span.addEventListener('click',()=>{
+              span.dataset.mode = (span.dataset.mode === 'fret') ? 'note' : 'fret';
+              span.textContent = (span.dataset.mode === 'fret') ? span.dataset.fret : span.dataset.note;
+            });
+            td.appendChild(span);
+          } else {
+            td.classList.add('cell-empty');
+            td.textContent = '';
+          }
+          tr.appendChild(td);
+        }
+        tbody.appendChild(tr);
+      });
+      table.appendChild(thead);
+      table.appendChild(tbody);
+      table.style.fontSize = frets>12 ? '10px' : '13px';
+      out.appendChild(table);
+
+      buildShapes(tuning, root, intervals, frets);
+
+      applyGlobalDisplayMode();
+    }
+
+    function drawNow(){
+      const tuning = parseTuning(document.getElementById('tuning').value);
+      const root = Number(rootSelect.value);
+
+      const useChords = document.getElementById('useChords');
+      const chords = document.getElementById('chords');
+      if(useChords && useChords.checked && chords){
+        const pcs = pitchClassesFromChordInput(chords.value);
+        const ints = intervalsFromPitchClasses(pcs, root);
+        document.getElementById('intervals').value = ints.join(',');
+        if(window.updateIntervalsUI) window.updateIntervalsUI();
+      }
+
+      const intervals = parseIntervals(document.getElementById('intervals').value);
+      const frets = Math.max(1, Math.min(36, Math.floor(Number(document.getElementById('frets').value)||12)));
+      if(!tuning||!intervals) return;
+      buildFretboard(tuning, root, intervals, frets);
+      renderTriads(root, intervals);
+    }
+
+    function debounce(fn, ms){
+      let t;
+      return (...args)=>{
+        clearTimeout(t);
+        t = setTimeout(()=>fn(...args), ms);
+      };
+    }
+
+    rootSelect.addEventListener('change', drawNow);
+
+    const useChords = document.getElementById('useChords');
+    const chordsInput = document.getElementById('chords');
+    if(useChords && chordsInput){
+      const applyMode = ()=>{
+        setIntervalControlsDisabled(useChords.checked);
+        drawNow();
+      };
+      useChords.addEventListener('change', applyMode);
+      chordsInput.addEventListener('input', debounce(drawNow, 200));
+      chordsInput.addEventListener('change', drawNow);
+      applyMode();
+    }
+
+    const tuningInput = document.getElementById('tuning');
+    tuningInput.addEventListener('input', debounce(drawNow, 200));
+    tuningInput.addEventListener('change', drawNow);
+
+    const fretsInput = document.getElementById('frets');
+    fretsInput.addEventListener('input', drawNow);
+    fretsInput.addEventListener('change', drawNow);
+
+    document.getElementById('toggleAll').addEventListener('click',()=>{
+      globalDisplayMode = (globalDisplayMode === 'fret') ? 'note' : 'fret';
+      applyGlobalDisplayMode();
+    });
+
+    setupIntervalButtons();
+
+    drawNow();
+  </script>
+</body>
+</html>
