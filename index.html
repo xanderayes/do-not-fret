@@ -97,6 +97,13 @@
       </div>
 
       <div class="field">
+        <label>Scale Number</label>
+        <div id="scaleNumberDisplay" style="padding:8px 10px;border-radius:8px;background:rgba(125,211,252,0.06);border:1px solid rgba(125,211,252,0.15);min-height:36px;display:flex;align-items:center;">
+          <a id="scaleNumberLink" href="#" target="_blank" style="color:#7dd3fc;text-decoration:none;font-weight:600;">—</a>
+        </div>
+      </div>
+
+      <div class="field">
         <label for="frets">Frets</label>
         <input id="frets" type="number" value="24" min="1" max="36" />
       </div>
@@ -401,6 +408,28 @@ Interaction
         }
       }
       return {tetrads, major, minor, diminished, augmented, diads};
+    }
+
+    function calculateScaleNumber(intervals){
+      // Calculate decimal representation where each interval is a power of 2
+      // intervals [0,2,4,5,7,9,11] -> 2^0 + 2^2 + 2^4 + 2^5 + 2^7 + 2^9 + 2^11 = 2741
+      let decimal = 0;
+      for(const interval of intervals){
+        decimal += Math.pow(2, interval);
+      }
+      return decimal;
+    }
+
+    function updateScaleNumberDisplay(intervals){
+      const link = document.getElementById('scaleNumberLink');
+      if(!link || !intervals || intervals.length === 0){
+        if(link) link.textContent = '—';
+        return;
+      }
+      const scaleNumber = calculateScaleNumber(intervals);
+      const url = `https://ianring.com/musictheory/scales/${scaleNumber}`;
+      link.href = url;
+      link.textContent = `${scaleNumber} (click to view on ianring.com)`;
     }
 
     function renderTriads(root, intervals){
@@ -776,6 +805,7 @@ Interaction
       if(!tuning||!intervals) return;
       buildFretboard(tuning, root, intervals, frets);
       renderTriads(root, intervals);
+      updateScaleNumberDisplay(intervals);
     }
 
     function debounce(fn, ms){
