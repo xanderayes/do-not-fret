@@ -98,6 +98,7 @@
           <button id="cycleProgression" type="button" class="btn-ghost">Cycle Progression</button>
           <span id="progressionIndicator" style="color:var(--muted);font-size:13px;padding:8px 0;">1 / 1</span>
         </div>
+        <div id="currentProgressionDisplay" style="color:#7dd3fc;font-size:13px;font-style:italic;padding:4px 0;min-height:20px;"></div>
       </div>
 
       <div class="field">
@@ -303,12 +304,20 @@ Interaction
     function updateProgressionIndicator(){
       const progressions = parseChordProgressions(document.getElementById('chords').value);
       const indicator = document.getElementById('progressionIndicator');
+      const display = document.getElementById('currentProgressionDisplay');
+      
       if(indicator){
         if(progressions.length > 0){
           const current = (currentProgressionIndex % progressions.length) + 1;
           indicator.textContent = `${current} / ${progressions.length}`;
+          
+          if(display){
+            const currentProgression = progressions[currentProgressionIndex % progressions.length];
+            display.textContent = currentProgression || '';
+          }
         } else {
           indicator.textContent = '1 / 1';
+          if(display) display.textContent = '';
         }
       }
     }
