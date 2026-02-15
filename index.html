@@ -322,6 +322,13 @@ Interaction
       }
     }
 
+    function getRootFromFirstChord(text){
+      const tokens = String(text || '').split(/[\s,;]+/).map(s=>s.trim()).filter(Boolean);
+      if(tokens.length === 0) return null;
+      const firstChord = parseChordToken(tokens[0]);
+      return firstChord ? firstChord.rootSemi : null;
+    }
+
     function pitchClassesFromChordInput(text){
       const tokens = String(text || '').split(/[\s,;]+/).map(s=>s.trim()).filter(Boolean);
       const pcs = new Set();
@@ -828,19 +835,27 @@ Interaction
 
     function drawNow(){
       const tuning = parseTuning(document.getElementById('tuning').value);
-      const root = Number(rootSelect.value);
+      let root = Number(rootSelect.value);
 
       const useChords = document.getElementById('useChords');
       const chords = document.getElementById('chords');
+      let intervals;
+      
       if(useChords && useChords.checked && chords){
         const currentProgression = getCurrentChordProgression(chords.value);
+        const firstChordRoot = getRootFromFirstChord(currentProgression);
+        if(firstChordRoot !== null){
+          rootSelect.value = firstChordRoot;
+          root = firstChordRoot;
+        }
         const pcs = pitchClassesFromChordInput(currentProgression);
-        const ints = intervalsFromPitchClasses(pcs, root);
-        document.getElementById('intervals').value = ints.join(',');
+        intervals = intervalsFromPitchClasses(pcs, root);
+        document.getElementById('intervals').value = intervals.join(',');
         if(window.updateIntervalsUI) window.updateIntervalsUI();
+      } else {
+        intervals = parseIntervals(document.getElementById('intervals').value);
       }
 
-      const intervals = parseIntervals(document.getElementById('intervals').value);
       const frets = Math.max(1, Math.min(36, Math.floor(Number(document.getElementById('frets').value)||12)));
       if(!tuning||!intervals) return;
       buildFretboard(tuning, root, intervals, frets);
