@@ -86,14 +86,18 @@
       </div>
 
       <div class="field">
-        <label for="chords">Chords</label>
+        <label for="chords">Chord Progressions</label>
         <div class="controls-row">
           <label style="display:flex;gap:8px;align-items:center">
             <input id="useChords" type="checkbox" />
             Use chords
           </label>
         </div>
-        <textarea id="chords" placeholder="e.g. Cmaj7 Dm7 G7"></textarea>
+        <textarea id="chords" placeholder="Cmaj7 Dm7 G7&#10;Am7 Em7 A7 Dm7 G7"></textarea>
+        <div class="controls-row">
+          <button id="cycleProgression" type="button" class="btn-ghost">Cycle Progression</button>
+          <span id="progressionIndicator" style="color:var(--muted);font-size:13px;padding:8px 0;">1 / 1</span>
+        </div>
       </div>
 
       <div class="field">
@@ -285,6 +289,30 @@ Interaction
       return {rootSemi, intervals:ints, pitchClasses:pcs};
     }
 
+    function parseChordProgressions(text){
+      const lines = String(text || '').split('\n').map(s=>s.trim()).filter(Boolean);
+      return lines;
+    }
+
+    function getCurrentChordProgression(text){
+      const progressions = parseChordProgressions(text);
+      if(progressions.length === 0) return '';
+      return progressions[currentProgressionIndex % progressions.length];
+    }
+
+    function updateProgressionIndicator(){
+      const progressions = parseChordProgressions(document.getElementById('chords').value);
+      const indicator = document.getElementById('progressionIndicator');
+      if(indicator){
+        if(progressions.length > 0){
+          const current = (currentProgressionIndex % progressions.length) + 1;
+          indicator.textContent = `${current} / ${progressions.length}`;
+        } else {
+          indicator.textContent = '1 / 1';
+        }
+      }
+    }
+
     function pitchClassesFromChordInput(text){
       const tokens = String(text || '').split(/[\s,;]+/).map(s=>s.trim()).filter(Boolean);
       const pcs = new Set();
@@ -316,6 +344,8 @@ Interaction
     }
 
     let globalDisplayMode = 'fret';
+    let currentProgressionIndex = 0;
+    let chordProgressions = [];
     function applyGlobalDisplayMode(){
       document.querySelectorAll('[data-fret][data-note]').forEach(el=>{
         el.dataset.mode = globalDisplayMode;
@@ -794,7 +824,8 @@ Interaction
       const useChords = document.getElementById('useChords');
       const chords = document.getElementById('chords');
       if(useChords && useChords.checked && chords){
-        const pcs = pitchClassesFromChordInput(chords.value);
+        const currentProgression = getCurrentChordProgression(chords.value);
+        const pcs = pitchClassesFromChordInput(currentProgression);
         const ints = intervalsFromPitchClasses(pcs, root);
         document.getElementById('intervals').value = ints.join(',');
         if(window.updateIntervalsUI) window.updateIntervalsUI();
@@ -806,6 +837,7 @@ Interaction
       buildFretboard(tuning, root, intervals, frets);
       renderTriads(root, intervals);
       updateScaleNumberDisplay(intervals);
+      updateProgressionIndicator();
     }
 
     function debounce(fn, ms){
@@ -843,6 +875,17 @@ Interaction
       globalDisplayMode = (globalDisplayMode === 'fret') ? 'note' : 'fret';
       applyGlobalDisplayMode();
     });
+
+    const cycleProgressionBtn = document.getElementById('cycleProgression');
+    if(cycleProgressionBtn){
+      cycleProgressionBtn.addEventListener('click',()=>{
+        const progressions = parseChordProgressions(document.getElementById('chords').value);
+        if(progressions.length > 1){
+          currentProgressionIndex = (currentProgressionIndex + 1) % progressions.length;
+          drawNow();
+        }
+      });
+    }
 
     setupIntervalButtons();
 
