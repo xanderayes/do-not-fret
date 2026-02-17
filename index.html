@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Fretboard Scale Visualizer</title>
+  <title>DO NOT FRET!</title>
   <style>
     :root{--bg:#0f1724;--card:#0b1220;--muted:#96a0b3;--accent:#7dd3fc}
     html,body{height:100%;margin:0;font-family:Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;color:#e6eef6;background:linear-gradient(180deg,#071026 0%, #071723 60%);}
@@ -61,8 +61,8 @@
 </head>
 <body>
   <div class="wrap">
-    <h1>Fretboard Scale Visualizer — Standalone HTML</h1>
-    <p class="lead">Lowest string is at the bottom. Only scale notes are clickable to cycle: fret → note.</p>
+    <h1>DO NOT FRET!</h1>
+    <p class="lead">Choose the scale intervals or chord progressions to see the magic happen</p>
 
     <div class="controls">
       <div class="field">
@@ -102,7 +102,7 @@
       </div>
 
       <div class="field">
-        <label>Scale Number</label>
+        <label>Scale Information</label>
         <div id="scaleNumberDisplay" style="padding:8px 10px;border-radius:8px;background:rgba(125,211,252,0.06);border:1px solid rgba(125,211,252,0.15);min-height:36px;display:flex;align-items:center;">
           <a id="scaleNumberLink" href="#" target="_blank" style="color:#7dd3fc;text-decoration:none;font-weight:600;">—</a>
         </div>
@@ -160,17 +160,41 @@
 
     <div class="readme" id="readme">
       <h2>README</h2>
-      <p>This is a single-file, standalone fretboard/scale visualizer. Open <code>fretboard.html</code> in a browser and use the controls above to explore scales and chord-derived pitch collections.</p>
-      <pre>Controls
-- Tuning: space-separated notes, low → high (example: E A D G B E)
-- Root note: key center for interval calculations
-- Intervals: click 0–11 to toggle; use Rotate up/down to transpose the set
-- Chords: enable “Use chords” and type chord symbols (example: Cmaj7 Dm7 G7)
+      <p>How to use, what each input does, and what each output means.</p>
+      <pre>What you have to provide:
+- Tuning: space-separated notes, low → high (example: "E A D G B E" for a 6 string guitar in standard tuning; "D A D G" for a 4 string bass in drop D) 
+- Root note: the note that the intervals are based on
+- Intervals: click 0–11 to toggle each note on or off. (example: "0,2,4,5,7,9,11" for a major scale; "0,3,5,7,10" for a pentatonic minor scale)
+- Rotate down/up: rotate the intervals down or up by one step. Useful for finding other modes in this scale.
 - Frets: number of frets to display
+- Chord progressions: (see in "Chord Progressions" below)
 
-Interaction
-- Click any highlighted cell/dot to toggle between showing fret number and note name.
-- “Show notes” toggles the display mode globally.</pre>
+What you get:
+- Fretboard: the fretboard with the scale notes highlighted.
+        - Click any note in the fretboard to toggle between showing fret number and note name.
+        - Click on "Show notes"/"Show frets" to toggle the display mode globally.
+        - Each octave is color-coded. The octave always starts on the root note.
+- Chords: the chords that can be built using the intervals chosen. The possible chords are as follows:
+        - major (example: C; F#) [0, 4, 7]
+        - minor (example: Cm; F#m) [0, 3, 7]
+        - diminished triad(example: Cdim; F#dim) [0, 3, 6]
+        - augmented (example: Caug; F#aug) [0, 4, 8]
+        - power chords (example: C5; F#5) [0, 7]
+        - major 7 (example: C7M; F#7M) [0, 4, 7, 11]
+        - minor 7 (example: Cm7; F#m7) [0, 3, 7, 10]
+        - dominant 7 (example: C7; F#7) [0, 4, 7, 10]
+        - half diminished (example: Cdim7; F#dim7) [0, 3, 6, 10]
+        - fully diminished (example: Cdim7-; F#dim7-) [0, 3, 6, 9]
+        - other chords to come in the future
+- Scale shapes: the shapes of the scale on the fretboard. There are 3 shapes for each mode:
+        - 3 notes per string: always starting with the index finger on the lowest string
+        - 3 - 1 shape: works great for economy picking in some situations. It follows the pattern of 3 nps, then 1 nps, then 3 again and so it goes.
+        - First finger: a box of 5 frets that always has the index finger fret as the lowest possible fret
+- Scale information: the scale number and link to the scale information on ianring.com, which is the most complete and accurate glossary of scales available.
+
+Using chord progressions:
+Alternatively, you can input your intervals by using chord progressions. You need to click on the checkbox "Use chords" and then input your chord progression in the textarea below. The intervals will then be calculated based on the chords you input, toggling on the notes of the chords.
+You can input multiple chord progressions separated by new lines. You can then cycle through them using the "Cycle Progression" button.</pre>
     </div>
   </div>
 
